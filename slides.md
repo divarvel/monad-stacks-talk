@@ -809,7 +809,7 @@ runDB :: ( Monad m
       -> m a
 
 runDB t = do
-  pool <- asks dpPool
+  pool <- asks dbPool
   liftIO (runDbTransaction t pool)
 ```
 
