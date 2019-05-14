@@ -22,7 +22,11 @@ but also, plumbing
 
 ---
 
-## Today I'll talk about plumbing
+![](./assets/mario.jpg)
+
+<details role="note">
+today I'll talk about plumbing
+</details>
 
 ---
 
@@ -56,6 +60,11 @@ main = do
   putStrLn host
 ```
 
+<details role="note">
+here, reading env vars is IO
+this info shows up in the types
+</details>
+
 ---
 
 ```scala
@@ -68,6 +77,11 @@ def getHost(): IO[String] = {
 }
 ```
 
+<details role="note">
+same in scala, with a bit more ceremony. By default
+the type system does not track IO, we have to use a library
+</details>
+
 ---
 
 ```scala
@@ -78,12 +92,21 @@ def main(): IO[Unit] = for {
 }
 ```
 
+<details role="note">
+same as in haskell, we can pretend we're doing imperative code
+</details>
+
 ---
 
 ```scala
 def runMain(): Unit =
   main().unsafeRunSync
 ```
+
+<details role="note">
+since we have to use a lib, we need to execute the IO.
+Hopefully, this should show up only one per codebase.
+</details>
 
 ---
 
@@ -98,7 +121,8 @@ IO is of course a driving force, but it's not the only thing
 ## Not only IO
 
 <details role="note">
-schemas of the handling chain => multiple slides (add observability & DI)
+schemas of the handling chain
+ => multiple slides (add observability & DI)
 </details>
 
 ---
@@ -115,6 +139,11 @@ main = do
   putStrLn host
 ```
 
+<details role="note">
+as seen earlier, there is special syntax for IO
+</details>
+
+
 ---
 
 # Combining IO steps
@@ -127,6 +156,11 @@ main :: IO ()
 main = getHost >>= (\host ->
          putStrLn host)
 ```
+
+<details role="note">
+it's just syntactic sugar for regular function calls
+</details>
+
 ---
 
 # Combining IO steps
@@ -138,6 +172,12 @@ main = getHost >>= (\host ->
 
 (>>=) :: IO a -> (a -> IO b) -> IO c
 ```
+
+<details role="note">
+the type shows that the IO has to be sequential
+(else, a would not be available)
+</details>
+
 ---
 
 # Combining IO steps
@@ -151,6 +191,10 @@ def main(): IO[Unit] = for {
   putStrLn(host)
 }
 ```
+
+<details role="note">
+same in scala
+</details>
 
 ---
 
@@ -166,6 +210,10 @@ def main(): IO[Unit] = {
   })
 ```
 
+<details role="note">
+syntactic sugar as well
+</details>
+
 ---
 
 # Combining IO steps
@@ -177,6 +225,10 @@ def main(): IO[Unit] = {
 
 IO[A]#flatMap(f: A => IO[B]): IO[B]
 ```
+
+<details role="note">
+same type (albeit a bit more noisy)
+</details>
 
 ---
 
@@ -191,6 +243,12 @@ data Either e a =
   | Right a
 ```
 
+<details role="note">
+io is not the only thing we can model explicitly in the 
+type system. We can replace exceptions with a proper
+data structure
+</details>
+
 ---
 
 # Combining Errors
@@ -204,6 +262,11 @@ data Either e a =
       -> Either e b
 ```
 
+<details role="note">
+we can combine them the same way as IO. with exceptions, each line only
+runs if the previous ones did not throw
+</details>
+
 ---
 
 ```scala
@@ -213,6 +276,10 @@ data Either e a =
 Either[E,A]#flatMap(f: A => Either[E,B])
                              : Either[E,B]
 ```
+
+<details role="note">
+same in scala
+</details>
 
 ---
 
@@ -238,6 +305,11 @@ You need something, but it has to be provided
 
 ## DI is glorified functions
 
+<details role="note">
+I can give you a value if you provide me with x is
+precisely the definition of functions
+</details>
+
 ---
 
 ```haskell
@@ -258,6 +330,12 @@ cat = CanIHaz (\cheez ->
 newtype CanIHaz env a =
   CanIHaz (env -> a)
 ```
+
+<details role="note">
+newtype is a wrapper (and is erased during compilation)
+This is the same as above, but a bit more expressive
+</details>
+
 
 ---
 
@@ -283,6 +361,11 @@ everywhere
       -> CanIHaz e b
 ```
 
+<details role="note">
+same as above: you can only have a value if the needed deps
+have been provided
+</details>
+
 ---
 
 # Combining DI
@@ -298,6 +381,11 @@ myOperation = do
   pure $ combine value1 value2
 ```
 
+<details role="note">
+no need to juggle with functions any more, everything
+is easy to compose
+</details>
+
 ---
 
 ## Monads describe sequential composition
@@ -311,6 +399,12 @@ myOperation = do
 forall m a b.
 Monad m => m a -> (a -> m b) -> m b
 ```
+
+<details role="note">
+all those functions have the same name and similar signatures
+that's because they're the same thing: sequential composition
+</details>
+
 ---
 
 ```haskell
@@ -321,6 +415,10 @@ Monad m => m a -> (a -> m b) -> m b
 (>>=) :: m a      -> (a -> m b) -> m b
 pure  :: a -> m a
 ```
+
+<details role="note">
+that's the essence of what monads are. we need a few things more
+</details>
 
 ---
 
@@ -382,9 +480,21 @@ type Compose m n a = m (n a)
       -> Compose m n b
 ```
 
+<details role="note">
+this function cannot be written. You can try to,
+to try to get the intuition of why it's not possible.
+The key is to realize when you're in this situation and
+stop trying (I've lost a few hours to this)
+</details>
+
 ---
 
 ## _Some_ monads compose <br> with _all_ monads
+
+<details role="note">
+We don't really need to make all monads compose together.
+As long as some monads compose with the rest of them
+</details>
 
 ---
 
@@ -400,6 +510,10 @@ type Compose m n a = m (n a)
       -> m (Maybe b)
 ```
 
+<details role="note">
+this, you can write (by pattern matching on maybe)
+</details>
+
 ---
 
 # Either
@@ -414,6 +528,10 @@ type Compose m n a = m (n a)
       -> m (Either e b)
 ```
 
+<details role="note">
+this, you can write (by pattern matching on either)
+</details>
+
 ---
 
 # CanIHaz (aka Reader)
@@ -427,11 +545,19 @@ type Compose m n a = m (n a)
       -> (a -> Reader e (m b))
       -> Reader e (m b)
 ```
+
+<details role="note">
+this, you can write (by applying the function)
+</details>
+
 ---
 
 ## Monad transformers
 
 <details role="note">
+the key point in all the examples above is that we use specific properties of the data types to implement bind.
+things exposed by Monad are not sufficient.
+
 take an arbitrary monad, and return a new
 monad, extended with a specific effect
 </details>
@@ -447,6 +573,11 @@ instance (Monad m) =>
     (>>=) = -- fun exercise
 ```
 
+<details role="note">
+For technical reasons, we need a wrapper to add new behaviours
+to composition of values. It also makes the code easier to read
+</details>
+
 ---
 
 ```haskell
@@ -458,6 +589,11 @@ getSocket = runMaybeT $ do
   port <- MaybeT (lookupEnv "PORT")
   pure (host <> ":" <> port)
 ```
+
+<details role="note">
+now we have this composition provided, we can compose steps
+and effects at the same time
+</details>
 
 
 ---
@@ -477,6 +613,10 @@ case class OptionT[F[_],A](
 
 ```
 
+<details role="note">
+same in scala, we use a wrapper
+</details>
+
 ---
 
 ```scala
@@ -491,6 +631,10 @@ def getSocket(): IO[Maybe[String]] = (
   } yield s"${host}:${port}"
 ).value
 ```
+
+<details role="note">
+code looks the same as in haskell
+</details>
 
 ---
 
@@ -516,6 +660,13 @@ type HandlerWithConf a =
   ReaderT Config Handler a
 ```
 
+<details role="note">
+here we combine
+- IO
+- Http level errors
+- Dependency Injection
+</details>
+
 ---
 
 ```haskell
@@ -528,6 +679,12 @@ findUser userId = do
     Just u  -> pure u
     Nothing -> throwError err404 -- tbd
 ```
+
+<details role="note">
+runDB requires the DI and IO
+the pattern matching requires http error handling
+I'll talk about how we can write throw error later
+</details>
 
 ---
 
@@ -544,6 +701,10 @@ type HandlerWithConf[A] =
   ReaderT[Config,Handler,A]
 ```
 
+<details role="note">
+same in scala (with more brackets)
+</details>
+
 ---
 
 ```scala
@@ -558,6 +719,10 @@ findUser(userId: UserId)
   }
 } yield response
 ```
+
+<details role="note">
+scala needs a bit more help for pure because of its poor type inference, but it's essentially the same
+</details>
 
 ---
 
@@ -582,7 +747,9 @@ Not every function uses all the effects
 ## Making things declarative
 
 <details role="note">
-MTL-style
+there is another way, called MTL-style that allows
+to declare the _effects_ you need without committing to 
+a specific monad stack
 </details>
 
 ---
@@ -602,6 +769,10 @@ throwError :: MonadError e m => e -> m a
 liftIO :: MonadIO m => IO a -> m a
 ```
 
+<details role="note">
+here, it's FORALL M, such as M behaves like…
+</details>
+
 ---
 
 ```haskell
@@ -613,6 +784,12 @@ runDbTransaction :: Transaction a
                  -> Pool
                  -> IO a
 ```
+
+<details role="note">
+let's say our DB library takes a transaction and runs it
+against a connection pool
+</details>
+
 
 ---
 
@@ -628,6 +805,11 @@ runDB t = do
   liftIO (runDbTransaction t pool)
 ```
 
+<details role="note">
+here we need DI (to get the pool), and IO, to actually
+run the transaction
+</details>
+
 ---
 
 ```haskell
@@ -640,6 +822,10 @@ findUser :: ( Monad m
          => UserId
          -> m User
 ```
+
+<details role="note">
+for the whole handler, we also need HTTP error handling
+</details>
 
 ---
 
@@ -656,6 +842,10 @@ findUser uid = do
     Nothing -> throwError err404
 ```
 
+<details role="note">
+since these are all the effects we talk about, we can put them in an alias instead of copying them over and over
+</details>
+
 ---
 
 # Transformers as a free* implementation
@@ -663,7 +853,11 @@ findUser uid = do
 _* conditions may apply_
 
 <details role="note">
-Monad stacks provide an impl for free (*)
+Here the code only talks about interfaces. You have to provide
+an implementation that satisfies this interface.
+
+
+Monad transformers provide an impl for free (*)
 (*) conditions may apply
 </details>
 
@@ -673,6 +867,9 @@ Monad stacks provide an impl for free (*)
 
 <details role="note">
 you can fuse everything in a single type for perf reasons
+the way transformers implement the interface generates a lot of
+calls, this can have a perf cost (it's up to you to decide if
+this is acceptable or not: tradeoffs, tradeoffs)
 </details>
 
 ---
@@ -682,7 +879,7 @@ you can fuse everything in a single type for perf reasons
 <details role="note">
 No need to stay constrained to monad transformers
 just keep the typeclasses as interface (create your own), provide
-the interpreter you want (maybe using monad transformers)
+the interpreter you want (maybe using monad transformers, maybe not)
 </details>
 
 ---
