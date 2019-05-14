@@ -46,9 +46,35 @@ thing to do.
 
 ---
 
-## Code example for IO
+```haskell
+getHost :: IO String
+getHost = getEnv "HOSTNAME"
 
-haskell / task
+main :: IO ()
+main = do
+  host <- getHost
+  putStrLn host
+```
+
+---
+
+```scala
+// Using cats IO
+def putStrLn(s: String): IO[Unit] =
+  IO.apply(println(s))
+
+def getHost(): IO[String] = {
+  IO.apply(System.getEnv("HOSTNAME"))
+}
+
+def main(): IO[Unit] = for {
+  host <- getHost()
+  putStrLn(host)
+}
+
+def runMain(): Unit =
+  main().unsafeRunSync
+```
 
 ---
 
@@ -70,40 +96,186 @@ schemas of the handling chain => multiple slides (add observability & DI)
 
 ## Combining IO steps
 
-<details role="note">
-bind (scala / haskell)
-</details>
+```haskell
+main :: IO ()
+main = do
+  host <- getHost
+  putStrLn host
+```
+
+---
+
+## Combining IO steps
+
+```haskell
+main :: IO ()
+main = getHost >>= (\host ->
+         putStrLn host)
+```
+---
+
+## Combining IO steps
+
+```haskell
+(>>=) :: IO a -> (a -> IO b) -> IO c
+```
+---
+
+## Combining IO steps
+
+```scala
+def main(): IO[Unit] = for {
+  host <- getHost()
+  putStrLn(host)
+}
+```
+
+---
+
+## Combining IO steps
+
+```scala
+def main(): IO[Unit] = {
+  getHost().flatMap(host => {
+    putStrLn(host)
+  })
+```
+
+---
+
+## Combining IO steps
+
+```scala
+IO[A]#flatMap(f: A => IO[B]): IO[B]
+```
 
 ---
 
 ## Combining Errors
 
-<details role="note">
-bind
-</details>
+```haskell
+(>>=) :: Either e a
+      -> (a -> Either e b)
+      -> Either e b
+```
 
 ---
+
+```scala
+Either[E,A]#flatMap(f: A => Either[E,B]): Either[E,B]
+```
 
 ## Let's talk DI
 
 <details role="note">
-functions
-CanIHaz wrapper
-Is this a monad?
+Super important, driving force for app design in oop world
+you could even create a framework just for DI
+</details>
+
+---
+
+## DI is simple
+
+<details role="note">
+even though it's common to have runtime reflection, DI
+containers and so on, DI at its core, is simple.
+
+You need something, but it has to be provided
+</details>
+
+---
+
+## DI is glorified functions
+
+---
+
+```haskell
+newtype CanIHaz env a =
+  CanIHaz (env -> a)
+
+cat :: CanIHaz Cheeseburger Nap
+cat = CanIHaz (\cheez ->
+        -- whatever cats do
+        )
+```
+
+---
+
+## Combining DI
+
+<details>
+combining functions like this would be tedious
+usually, the real dependency is deep down, and
+flows upwards, but you don't want to apply functions
+everywhere
 </details>
 
 ---
 
 ## Combining DI
 
+```haskell
+(>>=) :: CanIHaz e a
+      -> (a -> CanIHaz e b)
+      -> CanIHaz e b
+```
+
 ---
 
-## Combining things
+## Combining DI
 
-<details role="note">
-monads
+```haskell
+myOperation :: CanIHaz AppConfig Value
+myOperation = do
+  value1 <- myOperation1
+  value2 <- myOperation2
+  pure $ combine value1 value2
+```
 
-functions + laws (haskell / scala)
+---
+
+## Monads describe sequential composition
+
+---
+
+```haskell
+forall m a b.
+Monad m => m a -> (a -> m b) -> m b
+```
+---
+
+```haskell
+(<$>) :: (a -> b) ->       m a  -> m b
+(>>=) :: m a      -> (a -> m b) -> m b
+pure  :: a -> m a
+```
+
+---
+
+## Laws
+
+```haskell
+fa >>= pure  === fa
+
+pure a >>= f === f a
+
+   (fa >>= f)         >>= g
+=== fa >>= (\x -> f x >>= g)
+```
+
+<details>
+as long as you don't create monads, let the tooling
+use them for you
+</details>
+
+---
+
+## Plumbing is all about sequential composition
+
+<details>
+Regular code is mostly regular composition. You only care about
+business values. In plumbing code, the actual functions are usually
+boring. What matters is the effects (error handling, etc)
 </details>
 
 ---
@@ -111,8 +283,11 @@ functions + laws (haskell / scala)
 ## Combining effects
 
 <details role="note">
+Combining steps separately is nice, but usually I don't have
+only one effect
 async + DI + http errors
-"monads don't compose"
+
+Can I compose them willy-nilly?
 </details>
 
 ---
@@ -121,25 +296,110 @@ async + DI + http errors
 
 ---
 
-## m (n (m (n a))) -> m (n a)
+```haskell
+type Compose m n a = m (n a)
+
+(>>=) :: (Monad m, Monad n)
+      => Compose m n a
+      -> (a -> Compose m n b)
+      -> Compose m n b
+```
 
 ---
 
-## Some monads compose
+## _Some_ monads compose with _all_ monads
 
 ---
 
-## Examples with IO (Maybe a) and Reader c (IO a)
+## Maybe
 
+```haskell
+(>>=) :: Monad m
+      => m (Maybe a)
+      -> (a -> m (Maybe b))
+      -> m (Maybe b)
+```
+
+---
+
+## Either
+
+```haskell
+(>>=) :: Monad m
+      => m (Either e a)
+      -> (a -> m (Either e b))
+      -> m (Either e b)
+```
+
+---
+
+## CanIHaz (aka Reader)
+
+```haskell
+(>>=) :: Monad m
+      => Reader e (m a)
+      -> (a -> Reader e (m b))
+      -> Reader e (m b)
+```
 ---
 
 ## Monad transformers
 
+<details>
+take an arbitrary monad, and return a new
+monad, extended with a specific effect
+</details>
+
 ---
 
-## Combining effects
+```haskell
+newtype MaybeT m a =
+  MaybeT { runMaybeT :: m (Maybe a) }
+
+instance (Monad m) => Monad (MaybeT m) where
+  (>>=) = -- fun exercise
+```
+
+---
+
+```haskell
+getSocket :: IO (Maybe String)
+getSocket = runMaybeT $ do
+  host <- MaybeT (lookupEnv "HOST")
+  port <- MaybeT (lookupEnv "PORT")
+  pure (host <> ":" <> port)
+```
+
+
+---
+
+```scala
+case class OptionT[F[_],A](value: F[Option[A]]) {
+  def flatMap[B](f: A => OptionT[F,B]): OptionT[F,B] = {
+    // fun exercise
+  }
+}
+
+```
+
+---
+
+```scala
+def lookupEnv(s: String): IO[Maybe[String] =
+  // todo
+
+def getSocket(): IO[Maybe[String]] = (for {
+  host <- OptionT(lookupEnv("HOST")
+  port <- OptionT(lookupEnv("PORT")
+} yield s"${host}:${port}").value
+```
+
+---
+
+## Combining more than two effects
 
 <details role="note">
+apply transformers one by one
 monad stacks
 </details>
 
@@ -147,8 +407,50 @@ monad stacks
 
 ## Example
 
+```haskell
+type Handler a = ExceptT Error IO a
+type HandlerWithConf a = ReaderT Config Handler a
+```
+
+---
+
+```haskell
+findUser :: UserId -> HandlerWithConf User
+findUser userId = do
+  results <- runQuery $ findUser userId
+  case results of
+    Just u  -> pure u
+    Nothing -> throwError err404 -- tbd
+```
+
+---
+
+## Example
+
+```scala
+type Handler[A] = ExceptT[Error,IO,A]
+type HandlerWithConf[A] = ReaderT[Config,Handler,A]
+```
+
+---
+
+```scala
+findUser(userId: UserId): HandlerWithConf[A] = for {
+  results <- runQuery(findUser(userId))
+  response <- results match {
+    case Some(u) => pure(u) -- tdb
+    case None => throwError(err404) -- tbd
+  }
+} yield response
+```
+
+---
+
+## Everything just needs to return `HandlerWithConf`
+
 <details role="note">
-ExceptT (ReaderT IO c)
+Writing handlers is simplified, sure, but everything is tied
+to the _whole_ monad stack
 </details>
 
 ---
