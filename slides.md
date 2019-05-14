@@ -127,6 +127,14 @@ schemas of the handling chain
 
 ---
 
+## Not only IO
+
+<details role="note">
+more generally, we talk about _effects_
+</details>
+
+---
+
 # Combining IO steps
 
 ```haskell
