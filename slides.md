@@ -66,12 +66,21 @@ def putStrLn(s: String): IO[Unit] =
 def getHost(): IO[String] = {
   IO.apply(System.getEnv("HOSTNAME"))
 }
+```
+
+---
+
+```scala
 
 def main(): IO[Unit] = for {
   host <- getHost()
   putStrLn(host)
 }
+```
 
+---
+
+```scala
 def runMain(): Unit =
   main().unsafeRunSync
 ```
@@ -94,9 +103,12 @@ schemas of the handling chain => multiple slides (add observability & DI)
 
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```haskell
+
+
+
 main :: IO ()
 main = do
   host <- getHost
@@ -105,25 +117,35 @@ main = do
 
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```haskell
+
+
+
 main :: IO ()
 main = getHost >>= (\host ->
          putStrLn host)
 ```
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```haskell
+
+
+
+
 (>>=) :: IO a -> (a -> IO b) -> IO c
 ```
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```scala
+
+
+
 def main(): IO[Unit] = for {
   host <- getHost()
   putStrLn(host)
@@ -132,9 +154,12 @@ def main(): IO[Unit] = for {
 
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```scala
+
+
+
 def main(): IO[Unit] = {
   getHost().flatMap(host => {
     putStrLn(host)
@@ -143,17 +168,37 @@ def main(): IO[Unit] = {
 
 ---
 
-## Combining IO steps
+# Combining IO steps
 
 ```scala
+
+
+
+
 IO[A]#flatMap(f: A => IO[B]): IO[B]
 ```
 
 ---
 
-## Combining Errors
+# Modeling Errors
 
 ```haskell
+
+
+
+data Either e a =
+    Left e
+  | Right a
+```
+
+---
+
+# Combining Errors
+
+```haskell
+
+
+
 (>>=) :: Either e a
       -> (a -> Either e b)
       -> Either e b
@@ -162,8 +207,14 @@ IO[A]#flatMap(f: A => IO[B]): IO[B]
 ---
 
 ```scala
-Either[E,A]#flatMap(f: A => Either[E,B]): Either[E,B]
+
+
+
+Either[E,A]#flatMap(f: A => Either[E,B])
+                             : Either[E,B]
 ```
+
+---
 
 ## Let's talk DI
 
@@ -190,20 +241,29 @@ You need something, but it has to be provided
 ---
 
 ```haskell
-newtype CanIHaz env a =
-  CanIHaz (env -> a)
-
-cat :: CanIHaz Cheeseburger Nap
-cat = CanIHaz (\cheez ->
+cat :: Cheeseburger -> Nap
+cat = \cheez ->
         -- whatever cats do
         )
 ```
 
 ---
 
+```haskell
+cat :: CanIHaz Cheeseburger Nap
+cat = CanIHaz (\cheez ->
+        -- whatever cats do
+        )
+
+newtype CanIHaz env a =
+  CanIHaz (env -> a)
+```
+
+---
+
 ## Combining DI
 
-<details>
+<details role="note">
 combining functions like this would be tedious
 usually, the real dependency is deep down, and
 flows upwards, but you don't want to apply functions
@@ -212,9 +272,12 @@ everywhere
 
 ---
 
-## Combining DI
+# Combining DI
 
 ```haskell
+
+
+
 (>>=) :: CanIHaz e a
       -> (a -> CanIHaz e b)
       -> CanIHaz e b
@@ -222,9 +285,12 @@ everywhere
 
 ---
 
-## Combining DI
+# Combining DI
 
 ```haskell
+
+
+
 myOperation :: CanIHaz AppConfig Value
 myOperation = do
   value1 <- myOperation1
@@ -239,12 +305,18 @@ myOperation = do
 ---
 
 ```haskell
+
+
+
 forall m a b.
 Monad m => m a -> (a -> m b) -> m b
 ```
 ---
 
 ```haskell
+
+
+
 (<$>) :: (a -> b) ->       m a  -> m b
 (>>=) :: m a      -> (a -> m b) -> m b
 pure  :: a -> m a
@@ -252,9 +324,12 @@ pure  :: a -> m a
 
 ---
 
-## Laws
+# Laws
 
 ```haskell
+
+
+
 fa >>= pure  === fa
 
 pure a >>= f === f a
@@ -263,7 +338,7 @@ pure a >>= f === f a
 === fa >>= (\x -> f x >>= g)
 ```
 
-<details>
+<details role="note">
 as long as you don't create monads, let the tooling
 use them for you
 </details>
@@ -272,7 +347,7 @@ use them for you
 
 ## Plumbing is all about sequential composition
 
-<details>
+<details role="note">
 Regular code is mostly regular composition. You only care about
 business values. In plumbing code, the actual functions are usually
 boring. What matters is the effects (error handling, etc)
@@ -297,6 +372,8 @@ Can I compose them willy-nilly?
 ---
 
 ```haskell
+
+
 type Compose m n a = m (n a)
 
 (>>=) :: (Monad m, Monad n)
@@ -307,13 +384,16 @@ type Compose m n a = m (n a)
 
 ---
 
-## _Some_ monads compose with _all_ monads
+## _Some_ monads compose <br> with _all_ monads
 
 ---
 
-## Maybe
+# Maybe
 
 ```haskell
+
+
+
 (>>=) :: Monad m
       => m (Maybe a)
       -> (a -> m (Maybe b))
@@ -322,9 +402,12 @@ type Compose m n a = m (n a)
 
 ---
 
-## Either
+# Either
 
 ```haskell
+
+
+
 (>>=) :: Monad m
       => m (Either e a)
       -> (a -> m (Either e b))
@@ -333,9 +416,12 @@ type Compose m n a = m (n a)
 
 ---
 
-## CanIHaz (aka Reader)
+# CanIHaz (aka Reader)
 
 ```haskell
+
+
+
 (>>=) :: Monad m
       => Reader e (m a)
       -> (a -> Reader e (m b))
@@ -345,7 +431,7 @@ type Compose m n a = m (n a)
 
 ## Monad transformers
 
-<details>
+<details role="note">
 take an arbitrary monad, and return a new
 monad, extended with a specific effect
 </details>
@@ -356,13 +442,16 @@ monad, extended with a specific effect
 newtype MaybeT m a =
   MaybeT { runMaybeT :: m (Maybe a) }
 
-instance (Monad m) => Monad (MaybeT m) where
-  (>>=) = -- fun exercise
+instance (Monad m) =>
+  Monad (MaybeT m) where
+    (>>=) = -- fun exercise
 ```
 
 ---
 
 ```haskell
+
+
 getSocket :: IO (Maybe String)
 getSocket = runMaybeT $ do
   host <- MaybeT (lookupEnv "HOST")
@@ -374,9 +463,15 @@ getSocket = runMaybeT $ do
 ---
 
 ```scala
-case class OptionT[F[_],A](value: F[Option[A]]) {
-  def flatMap[B](f: A => OptionT[F,B]): OptionT[F,B] = {
-    // fun exercise
+case class OptionT[F[_],A](
+
+    value: F[Option[A]]
+
+  ) {
+
+    def flatMap[B](f: A => OptionT[F,B])
+      : OptionT[F,B] = {
+        // fun exercise
   }
 }
 
@@ -385,13 +480,16 @@ case class OptionT[F[_],A](value: F[Option[A]]) {
 ---
 
 ```scala
-def lookupEnv(s: String): IO[Maybe[String] =
-  // todo
+def lookupEnv(s: String):
+  IO[Maybe[String] =
+    // todo
 
-def getSocket(): IO[Maybe[String]] = (for {
-  host <- OptionT(lookupEnv("HOST")
-  port <- OptionT(lookupEnv("PORT")
-} yield s"${host}:${port}").value
+def getSocket(): IO[Maybe[String]] = (
+  for {
+    host <- OptionT(lookupEnv("HOST")
+    port <- OptionT(lookupEnv("PORT")
+  } yield s"${host}:${port}"
+).value
 ```
 
 ---
@@ -405,19 +503,27 @@ monad stacks
 
 ---
 
-## Example
+# Example
 
 ```haskell
-type Handler a = ExceptT Error IO a
-type HandlerWithConf a = ReaderT Config Handler a
+
+
+
+type Handler a =
+  ExceptT Error IO a
+
+type HandlerWithConf a =
+  ReaderT Config Handler a
 ```
 
 ---
 
 ```haskell
-findUser :: UserId -> HandlerWithConf User
+findUser :: UserId
+         -> HandlerWithConf User
+
 findUser userId = do
-  results <- runTransaction (findUser userId)
+  results <- runDB (findUser userId)
   case results of
     Just u  -> pure u
     Nothing -> throwError err404 -- tbd
@@ -425,21 +531,30 @@ findUser userId = do
 
 ---
 
-## Example
+# Example
 
 ```scala
-type Handler[A] = ExceptT[Error,IO,A]
-type HandlerWithConf[A] = ReaderT[Config,Handler,A]
+
+
+
+type Handler[A] =
+  ExceptT[Error,IO,A]
+
+type HandlerWithConf[A] =
+  ReaderT[Config,Handler,A]
 ```
 
 ---
 
 ```scala
-findUser(userId: UserId): HandlerWithConf[A] = for {
-  results <- runTransaction(findUser(userId))
+findUser(userId: UserId)
+  : HandlerWithConf[A]
+
+= for {
+  results <- runT(findUser(userId))
   response <- results match {
-    case Some(u) => Monad[HandlerWithConf].of(u) -- tdb
-    case None => throwError(err404) -- tbd
+    case Some(u) => pure(u) //tdb
+    case None => throwError(err404) //tbd
   }
 } yield response
 ```
@@ -490,15 +605,25 @@ liftIO :: MonadIO m => IO a -> m a
 ---
 
 ```haskell
+
+
+
 -- provided by a library
 runDbTransaction :: Transaction a
                  -> Pool
                  -> IO a
+```
 
-runTransaction :: (Monad m, MonadReader Config m, MonadIO m)
-               => Transaction a
-               -> m a
-runTransaction t = do
+---
+
+```haskell
+runDB :: ( Monad m
+         , MonadReader Config m
+         , MonadIO m)
+      => Transaction a
+      -> m a
+
+runDB t = do
   pool <- asks dpPool
   liftIO (runDbTransaction t pool)
 ```
@@ -514,8 +639,18 @@ findUser :: ( Monad m
             )
          => UserId
          -> m User
-findUser userId = do
-  results <- runTransaction $ findUser userId
+```
+
+---
+
+```haskell
+
+findUser :: MonadEveryThing m
+         => UserId
+         -> m User
+
+findUser uid = do
+  results <- runTransaction $ findUser uid
   case results of
     Just u  -> pure u
     Nothing -> throwError err404
@@ -523,7 +658,9 @@ findUser userId = do
 
 ---
 
-## Chosing the interpreter
+# Transformers as a free* implementation
+
+_* conditions may apply_
 
 <details role="note">
 Monad stacks provide an impl for free (*)
@@ -538,6 +675,8 @@ Monad stacks provide an impl for free (*)
 you can fuse everything in a single type for perf reasons
 </details>
 
+---
+
 ## Going further
 
 <details role="note">
@@ -546,37 +685,60 @@ just keep the typeclasses as interface (create your own), provide
 the interpreter you want (maybe using monad transformers)
 </details>
 
-## Tagless final
+---
+
+# Tagless final
 
 ```haskell
+
+
+
 class UserRepo m where
   findUser :: UserId -> m (Maybe User)
   listUsers :: m [User]
 ```
 
-<details>
+<details role="note">
 you can describe your own behaviours, not just standard ones,
 and you can provide different interpreters as well
 (prod, debug, mock, …)
 </details>
 
+---
+
 ## Designing your stack
 
-<details>
+<details role="note">
 Don't try to put every monad you have in the stack or as a class.
 </details>
 
+---
+
 ## `m (Either e a)` is fine
 
-<details>
+<details role="note">
 `MonadError` is less powerful than having an explicit either
 (by design). Put in the stack (or in constraints) what really needs to be common across your application. Trying to fit everything
 in the stack will waste your time and over constrain your application
 
+---
+
 ## Closing words
 
-<details>
+<details role="note">
 MTL is a powerful style. If your app / HTTP lib is designed around monad stacks, it's a great fit.
 Pay attention to the perf (but don't chase perf for the sake of it)
 Monad transformers (without MTL) have their uses inside business code (but locally, and shouldn't make it to the signatures)
+</details>
+
+---
+
+## Don't panic
+
+<details role="note">
+This may seem complex, but
+- you can assemble stacks as you please
+- it looks complex because we looked at the whole thing
+ (think about how it's done in your favourite web framework)
+- at least, we have types
 </details>

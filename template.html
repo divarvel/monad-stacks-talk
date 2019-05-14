@@ -348,15 +348,30 @@ $endfor$
     .yolo h2 {
         background-color: rgba(0,0,0,0);
     }
-    code > span.fu {
-        color: rgb(118, 157, 255) !important;
+
+    pre.sourceCode {
+      margin-left: 1em;
     }
-    code > span.dt {
-        color: rgb(241, 53, 0) !important;
+
+    code span.fu, code span.kw {
+        color: rgb(241, 241, 241) !important;
     }
-    code > span.ot {
-        color: #00bb35 !important;
+    code span.dt, code span.st, code span.ch {
+        color: rgb(241, 241, 241) !important;
     }
+    code span.ot, code span.co, code span.op {
+        color: rgb(241, 241, 241) !important;
+    }
+
+    [role="note"] {
+      display: block;
+      position: absolute;
+      bottom: 0;
+      z-index: 300;
+      background-color: rgba(0,0,0,0.5);
+      font-size: 0.5em;
+    }
+
     body.loaded {
      height: 450px;
      margin-top: -225px;
