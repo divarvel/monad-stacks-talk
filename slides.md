@@ -417,7 +417,7 @@ type HandlerWithConf a = ReaderT Config Handler a
 ```haskell
 findUser :: UserId -> HandlerWithConf User
 findUser userId = do
-  results <- runQuery $ findUser userId
+  results <- runTransaction (findUser userId)
   case results of
     Just u  -> pure u
     Nothing -> throwError err404 -- tbd
@@ -436,9 +436,9 @@ type HandlerWithConf[A] = ReaderT[Config,Handler,A]
 
 ```scala
 findUser(userId: UserId): HandlerWithConf[A] = for {
-  results <- runQuery(findUser(userId))
+  results <- runTransaction(findUser(userId))
   response <- results match {
-    case Some(u) => pure(u) -- tdb
+    case Some(u) => Monad[HandlerWithConf].of(u) -- tdb
     case None => throwError(err404) -- tbd
   }
 } yield response
@@ -459,6 +459,7 @@ to the _whole_ monad stack
 
 <details role="note">
 Monad stacks are implementation, not interface
+Not every function uses all the effects
 </details>
 
 ---
@@ -475,7 +476,50 @@ MTL-style
 
 ---
 
-## Biz code example
+```haskell
+-- for ReaderT
+ask :: MonadReader e m => m e
+
+-- for ExceptT
+throwError :: MonadError e m => e -> m a
+
+-- for IO
+liftIO :: MonadIO m => IO a -> m a
+```
+
+---
+
+```haskell
+-- provided by a library
+runDbTransaction :: Transaction a
+                 -> Pool
+                 -> IO a
+
+runTransaction :: (Monad m, MonadReader Config m, MonadIO m)
+               => Transaction a
+               -> m a
+runTransaction t = do
+  pool <- asks dpPool
+  liftIO (runDbTransaction t pool)
+```
+
+---
+
+```haskell
+
+findUser :: ( Monad m
+            , MonadIO m
+            , MonadReader Config m
+            , MonadError Error m
+            )
+         => UserId
+         -> m User
+findUser userId = do
+  results <- runTransaction $ findUser userId
+  case results of
+    Just u  -> pure u
+    Nothing -> throwError err404
+```
 
 ---
 
@@ -498,11 +542,41 @@ you can fuse everything in a single type for perf reasons
 
 <details role="note">
 No need to stay constrained to monad transformers
+just keep the typeclasses as interface (create your own), provide
+the interpreter you want (maybe using monad transformers)
 </details>
 
 ## Tagless final
 
-<details role="note">
-just keep the typeclasses as interface (create your own), provide
-the interpreter you want (maybe using monad transformers)
+```haskell
+class UserRepo m where
+  findUser :: UserId -> m (Maybe User)
+  listUsers :: m [User]
+```
+
+<details>
+you can describe your own behaviours, not just standard ones,
+and you can provide different interpreters as well
+(prod, debug, mock, …)
+</details>
+
+## Designing your stack
+
+<details>
+Don't try to put every monad you have in the stack or as a class.
+</details>
+
+## `m (Either e a)` is fine
+
+<details>
+`MonadError` is less powerful than having an explicit either
+(by design). Put in the stack (or in constraints) what really needs to be common across your application. Trying to fit everything
+in the stack will waste your time and over constrain your application
+
+## Closing words
+
+<details>
+MTL is a powerful style. If your app / HTTP lib is designed around monad stacks, it's a great fit.
+Pay attention to the perf (but don't chase perf for the sake of it)
+Monad transformers (without MTL) have their uses inside business code (but locally, and shouldn't make it to the signatures)
 </details>
