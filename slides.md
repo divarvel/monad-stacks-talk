@@ -127,10 +127,23 @@ schemas of the handling chain
 
 ---
 
-## Not only IO
+# Modeling Effects
+
+```haskell
+
+
+
+-- haskell
+forall a. Effect a
+```
+
+```scala
+// scala
+Effect[A]
+```
 
 <details role="note">
-more generally, we talk about _effects_
+effects as a context (value + more information)
 </details>
 
 ---
@@ -249,6 +262,8 @@ same type (albeit a bit more noisy)
 data Either e a =
     Left e
   | Right a
+
+type Effect a = Either Error a
 ```
 
 <details role="note">
@@ -281,8 +296,9 @@ runs if the previous ones did not throw
 
 
 
-Either[E,A]#flatMap(f: A => Either[E,B])
-                             : Either[E,B]
+Either[E,A]
+  #flatMap(f: A => Either[E,B])
+    : Either[E,B]
 ```
 
 <details role="note">
@@ -321,6 +337,8 @@ precisely the definition of functions
 ---
 
 ```haskell
+
+
 cat :: Cheeseburger -> Nap
 cat = \cheez ->
         -- whatever cats do
@@ -330,6 +348,8 @@ cat = \cheez ->
 ---
 
 ```haskell
+
+
 cat :: CanIHaz Cheeseburger Nap
 cat = CanIHaz (\cheez ->
         -- whatever cats do
@@ -382,11 +402,11 @@ have been provided
 
 
 
-myOperation :: CanIHaz AppConfig Value
+myOperation :: CanIHaz AppConfig MyValue
 myOperation = do
   value1 <- myOperation1
-  value2 <- myOperation2
-  pure $ combine value1 value2
+  value2 <- myOperation2 value1
+  pure (value1 + value2)
 ```
 
 <details role="note">
@@ -418,9 +438,28 @@ that's because they're the same thing: sequential composition
 ```haskell
 
 
+( $ ) ::   (a ->   b) ->   a ->   b
+(<$>) ::   (a ->   b) -> m a -> m b
+(<*>) :: m (a ->   b) -> m a -> m b
+(=<<) ::   (a -> m b) -> m a -> m b
 
-(<$>) :: (a -> b) ->       m a  -> m b
-(>>=) :: m a      -> (a -> m b) -> m b
+pure  :: a -> m a
+```
+
+<details role="note">
+that's the essence of what monads are. we need a few things more
+</details>
+
+---
+
+```haskell
+
+
+( $ ) ::   (a ->   b) -> (  a ->   b)
+(<$>) ::   (a ->   b) -> (m a -> m b)
+(<*>) :: m (a ->   b) -> (m a -> m b)
+(=<<) ::   (a -> m b) -> (m a -> m b)
+
 pure  :: a -> m a
 ```
 
@@ -461,7 +500,15 @@ boring. What matters is the effects (error handling, etc)
 
 ---
 
-## Combining effects
+## Combining effectful values <br> (compose monadic values)
+
+---
+
+## Combining effect~~ful~~ ~~value~~s <br> (compose monad~~ic~~ ~~value~~s
+
+---
+
+## Combining effects <br> (compose monads)
 
 <details role="note">
 Combining steps separately is nice, but usually I don't have
@@ -473,7 +520,7 @@ Can I compose them willy-nilly?
 
 ---
 
-## Monads don't compose
+## Monads don't compose <br> (in general)
 
 ---
 
@@ -512,10 +559,10 @@ As long as some monads compose with the rest of them
 
 
 
-(>>=) :: Monad m
-      => m (Maybe a)
-      -> (a -> m (Maybe b))
-      -> m (Maybe b)
+(>>=') :: Monad m
+       => m (Maybe a)
+       -> (a -> m (Maybe b))
+       -> m (Maybe b)
 ```
 
 <details role="note">
@@ -530,10 +577,10 @@ this, you can write (by pattern matching on maybe)
 
 
 
-(>>=) :: Monad m
-      => m (Either e a)
-      -> (a -> m (Either e b))
-      -> m (Either e b)
+(>>=') :: Monad m
+       => m (Either e a)
+       -> (a -> m (Either e b))
+       -> m (Either e b)
 ```
 
 <details role="note">
@@ -548,10 +595,10 @@ this, you can write (by pattern matching on either)
 
 
 
-(>>=) :: Monad m
-      => Reader e (m a)
-      -> (a -> Reader e (m b))
-      -> Reader e (m b)
+(>>=') :: Monad m
+       => Reader e (m a)
+       -> (a -> Reader e (m b))
+       -> Reader e (m b)
 ```
 
 <details role="note">
@@ -634,8 +681,8 @@ def lookupEnv(s: String):
 
 def getSocket(): IO[Maybe[String]] = (
   for {
-    host <- OptionT(lookupEnv("HOST")
-    port <- OptionT(lookupEnv("PORT")
+    host <- OptionT(lookupEnv("HOST"))
+    port <- OptionT(lookupEnv("PORT"))
   } yield s"${host}:${port}"
 ).value
 ```
