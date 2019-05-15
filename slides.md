@@ -754,10 +754,10 @@ here we combine
 ---
 
 ```haskell
-findUser :: UserId
-         -> HandlerWithConf User
+findUserHandler :: UserId
+                -> HandlerWithConf User
 
-findUser userId = do
+findUserHander userId = do
   results <- runDB (findUser userId)
   case results of
     Just u  -> pure u
@@ -792,7 +792,7 @@ same in scala (with more brackets)
 ---
 
 ```scala
-findUser(userId: UserId)
+findUserHander(userId: UserId)
   : HandlerWithConf[A]
 
 = for {
