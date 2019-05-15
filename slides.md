@@ -32,11 +32,39 @@ today I'll talk about plumbing
 
 ## General web service design
 
-<details role="note">
-push IO and associated tasks at the outside
-typical request / response flow diagram
+---
 
+![](./assets/hexagon.jpg)
+
+<details role="note">
+push IO and associated tasks at the outside  
 no particular name given to it (as opposed to hex architecture)
+</details>
+
+---
+
+![](./assets/request-flow-first.jpg)
+
+<details role="note">
+typical request / response flow diagram  
+http, then persistence, and then (ideally) pure business logic
+</details>
+
+---
+
+![](./assets/request-flow-full.jpg)
+
+<details role="note">
+add to that external services and observability support
+</details>
+
+---
+
+![](./assets/request-flow-circle.jpg)
+
+<details role="note">
+business logic is a solved problem, so let's talk about  
+the nitty-gritty part
 </details>
 
 ---
